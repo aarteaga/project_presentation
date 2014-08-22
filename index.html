@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Presentation about Shiny application Climate Change</title>
+  <meta charset="utf-8">
+  <meta name="description" content="Presentation about Shiny application Climate Change">
+  <meta name="author" content="AArteaga">
+  <meta name="generator" content="slidify" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/default.css" media="all" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/phone.css" 
+    media="only screen and (max-device-width: 480px)" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/slidify.css" >
+  <link rel="stylesheet" href="libraries/highlighters/highlight.js/css/tomorrow.css" />
+  <base target="_blank"> <!-- This amazingness opens all links in a new tab. -->  <link rel=stylesheet href="./assets/css/ribbons.css"></link>
+
+  
+  <!-- Grab CDN jQuery, fall back to local if offline -->
+  <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+  <script>window.jQuery || document.write('<script src="libraries/widgets/quiz/js/jquery.js"><\/script>')</script> 
+  <script data-main="libraries/frameworks/io2012/js/slides" 
+    src="libraries/frameworks/io2012/js/require-1.0.8.min.js">
+  </script>
+  
+  
+
+</head>
+<body style="opacity: 0">
+  <slides class="layout-widescreen">
+    
+    <!-- LOGO SLIDE -->
+        <slide class="title-slide segue nobackground">
+  <hgroup class="auto-fadein">
+    <h1>Presentation about Shiny application Climate Change</h1>
+    <h2>Project from Coursera Developing Data Products Course</h2>
+    <p>AArteaga<br/></p>
+  </hgroup>
+  <article></article>  
+</slide>
+    
+
+    <!-- SLIDES -->
+    <slide class="" id="slide-1" style="background:;">
+  <hgroup>
+    <h1>Introduction</h1>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>This application plots some actual data and some simple scenarios for CO2 emissions of four important agents: China, USA, Rest of the World and the whole World.</li>
+<li>The base data are obtained from the <a href="http://www.iea.org/">International Energy Agency</a>. Those data include emissions from 1970 uf to 2011.</li>
+<li>The scenarios are build considering a constant emissions increment or decrement rate. </li>
+<li>The user can choose the emissions change rate for the three main cases (the World data are calculated as the sum of the other three). A Bussiness as Usual case is also defined based on historical data. </li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="class" id="id" style="background:;">
+  <hgroup>
+    <h1>Data Reading and treatment</h1>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>The data are read directly from the <a href="http://www.iea.org/">International Energy Agency</a> web page. The data are in an excel file read with the XLConnect library</li>
+</ul>
+
+<pre><code class="r">library(XLConnect)
+iea_url=&quot;http://www.iea.org/media/freepublications/2013pubs/CO2HighlightsExceltables.xls&quot;
+download.file(iea_url, &quot;CO2HighlightsExceltables.xls&quot;, method=&quot;wget&quot;)
+wb &lt;- loadWorkbook(&quot;CO2HighlightsExceltables.xls&quot;, create = FALSE)
+coltypes &lt;- rep(&quot;numeric&quot;, 42)
+coltypes[1] &lt;- &quot;character&quot;
+raw_data &lt;- readWorksheet(wb, sheet = &quot;CO2 SA&quot;, startRow = 3, colTypes = coltypes)
+</code></pre>
+
+<ul>
+<li>The obtained data frame needs some trimming as transposing the rows to colums, making the years dates and choosing the data to be used in the application. All the data trimming and getting is done in the file <em>read_data.R</em></li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="class" id="id" style="background:;">
+  <hgroup>
+    <h1>User interactive choices.</h1>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>Three slider control widgets allow the user to change the predicted scenarios, by chosing the CO2 emissions increment or drecrement rate for China, USA and the rest of the world.</li>
+<li>Base data are the Business As Usual case, calculated as the mean value of last 10 year emision changes.</li>
+<li>The limits for the sliders are calculated depending of the bussiness as ususal values, but roughly range a 10% of the total emissions. Those calculations are done in the files <em>rate_range.R</em> and <em>slider_limits.R</em>.</li>
+<li>There is a checkcontrol for using the Bussiness as Usual values independently of the slider choices.</li>
+<li>This is a code chunck:</li>
+</ul>
+
+<pre><code class="r">sliderInput(&#39;china_rate&#39;, &#39;China&#39;,
+                  value = base_china_rate, 
+                  min = min_china_rate, 
+                  max = max_china_rate, 
+                  step = step_china_rate)
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="class" id="id" style="background:;">
+  <hgroup>
+    <h1>Output plot</h1>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>The output plot is a time series ggplot containing 4 set of data for past data and other 4 for prediction scenarios. Each of the sets are for China, USA, World and rest of the World. </li>
+<li>The data are obtained from the dataframe obtained with data from the <a href="http://www.iea.org/">International Energy Agency</a> web page.</li>
+<li>The predictions are calculated with the fixed increment rate chosen with the interactive sliders.
+The code for the figure and prediction is contained iun the <em>server.R</em> file, the main part of figure code is:</li>
+</ul>
+
+<pre><code class="r">ggplot(data, aes(x = year, y = world, colour= &quot;World&quot;)) + geom_line() +
+      geom_line(mapping = aes(y = usa, colour = &quot;USA&quot;) ) +
+      geom_line(mapping = aes(y = china, colour = &quot;China&quot;)) +
+      geom_line(mapping = aes(y = rest_of_world, colour = &quot;Rest of World&quot;)) +
+      geom_line(mapping = aes(y = predict_world, colour= &quot;World&quot;), lwd = 1.3, lty = &quot;dashed&quot;) +
+      geom_line(mapping = aes(y = predict_usa, colour= &quot;USA&quot;), lwd = 1.3, lty = &quot;dashed&quot;) +
+      geom_line(mapping = aes(y = predict_china, colour= &quot;China&quot;), lwd = 1.3, lty = &quot;dashed&quot;) +
+      geom_line(mapping = aes(y = predict_rest_of_world, colour= &quot;Rest of World&quot;), lwd = 1.3, lty = &quot;dashed&quot;) +
+      scale_colour_manual(&quot;&quot;, breaks = c(&quot;World&quot;, &quot;USA&quot;, &quot;China&quot;, &quot;Rest of World&quot;),
+                         values = c(&quot;red&quot;, &quot;green&quot;, &quot;black&quot;, &quot;blue&quot;))
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+    <slide class="backdrop"></slide>
+  </slides>
+  <div class="pagination pagination-small" id='io2012-ptoc' style="display:none;">
+    <ul>
+      <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=1 title='Introduction'>
+         1
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=2 title='Data Reading and treatment'>
+         2
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=3 title='User interactive choices.'>
+         3
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=4 title='Output plot'>
+         4
+      </a>
+    </li>
+  </ul>
+  </div>  <!--[if IE]>
+    <script 
+      src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js">  
+    </script>
+    <script>CFInstall.check({mode: 'overlay'});</script>
+  <![endif]-->
+</body>
+  <!-- Load Javascripts for Widgets -->
+  
+  <!-- LOAD HIGHLIGHTER JS FILES -->
+  <script src="libraries/highlighters/highlight.js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  <!-- DONE LOADING HIGHLIGHTER JS FILES -->
+   
+  </html>
